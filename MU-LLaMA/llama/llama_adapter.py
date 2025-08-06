@@ -10,7 +10,7 @@ import torch.nn.functional as F
 
 from .llama import Transformer, ModelArgs, RMSNorm
 from .tokenizer import Tokenizer
-from util.misc import download
+from ..util.misc import download
 from .utils import sample_top_p
 
 from transformers import Wav2Vec2FeatureExtractor
@@ -120,12 +120,12 @@ class LLaMA_adapter(nn.Module):
             ckpt = torch.load(ckpt, map_location='cpu')
             for key, val in ckpt.items():
                 ckpts_dict[key].append(val)
-        
+
         for key, val in ckpts_dict.items():
             ckpts_dict[key] = torch.cat(val, dim=-1)
 
         self.llama.load_state_dict(ckpts_dict, strict=False)
-        
+
         print(ckpts)
         for ckpt in ckpts:
             print(ckpt)
@@ -322,7 +322,7 @@ class LLaMA_adapter(nn.Module):
         params = self.llama.params
         assert bsz <= params.max_batch_size, (bsz, params.max_batch_size)
 
-        with torch.cuda.amp.autocast():
+        with torch.amp.autocast("cuda"):
             audio_query = self.forward_audio(inputs, cache_size, cache_t, cache_weight)
 
         if isinstance(prompts[0], str):
@@ -341,7 +341,7 @@ class LLaMA_adapter(nn.Module):
         start_pos = min_prompt_size
         prev_pos = 0
         for cur_pos in range(start_pos, total_len):
-            with torch.cuda.amp.autocast():
+            with torch.amp.autocast("cuda"):
                 logits = self.forward_inference(audio_query, tokens[:, prev_pos:cur_pos], prev_pos)
             if temperature > 0:
                 probs = torch.softmax(logits / temperature, dim=-1)
@@ -371,7 +371,7 @@ class LLaMA_adapter(nn.Module):
                 pass
             decoded.append(self.tokenizer.decode(t))
 
-        return decoded
+        return decoded, tokens, logits
 
 
 def load(model_path, llama_dir, mert_path="m-a-p/MERT-v1-330M", device="cuda" if torch.cuda.is_available() else "cpu",
@@ -381,7 +381,7 @@ def load(model_path, llama_dir, mert_path="m-a-p/MERT-v1-330M", device="cuda" if
 
     # load llama_adapter weights and model_cfg
     print(f'Loading LLaMA-Adapter from {model_path}')
-    adapter_ckpt = torch.load(model_path, map_location='cpu')
+    adapter_ckpt = torch.load(model_path, map_location='cpu', weights_only=False)
     model_cfg = adapter_ckpt.get('config', {})
 
     # The model files for MERT can be downloaded here in case of network issues:
