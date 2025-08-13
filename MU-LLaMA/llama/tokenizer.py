@@ -38,3 +38,6 @@ class Tokenizer:
 
     def decode(self, t: List[int]) -> str:
         return self.sp_model.decode(t)
+
+    def decode_ids(self, t: List[int]) -> str:
+        return [self.sp_model.decode_ids(x) for x in t.tolist()]

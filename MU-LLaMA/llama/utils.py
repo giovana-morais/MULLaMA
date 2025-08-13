@@ -16,10 +16,7 @@ def format_prompt(instruction):
 
     PROMPT_DICT = {
         "prompt_input": (
-            "Below is an instruction that describes a task, paired with an input that provides further context. "
-            "Write a response that appropriately completes the request.\n\n"
-            "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:"
+            "{instruction}\n"
         )
     }
-    return PROMPT_DICT["prompt_input"].format_map({'instruction': instruction, 'input': input})
-
+    return PROMPT_DICT["prompt_input"].format_map({'instruction': instruction})
